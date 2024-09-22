@@ -1,0 +1,25 @@
+name: Lint
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16, 18]  # Test on Node.js 16 and 18
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - name: Install
+        run: npm ci --prefer-offline
+      - name: Alex
+        run: npm run alex
+      - name: Prettier
+        run: npm run prettier -- --list-different
+      - name: Eslint
+        run: npm run eslint -- --max-warnings 0
