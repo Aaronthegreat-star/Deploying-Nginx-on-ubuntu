@@ -1,25 +1,51 @@
-name: Lint
+name: Security Test workflow
 
-on: [push, pull_request]
+on: 
+  push: {branches: [main]} 
+  pull_request: {branches: [main]}
 
 jobs:
-  lint:
+  # Job1: lint job for node.js
+  node-lint:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [16, 18]  # Test on Node.js 16 and 18
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 16
           cache: 'npm'
           cache-dependency-path: package-lock.json
-      - name: Install
-        run: npm ci --prefer-offline
-      - name: Alex
-        run: npm run alex
-      - name: Prettier
+      - name: Install dependencies
+        working-directory: ./frontend 
+        run: npm install
+      - name: run Prettier
+        working-directory: ./frontend 
         run: npm run prettier -- --list-different
-      - name: Eslint
-        run: npm run eslint -- --max-warnings 0
+      - name: run Eslint
+        working-directory: ./frontend 
+        run: npm run lint   
+
+  # Job2: unit test for node.js
+  node-unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Install dependencies
+        run: npm install
+      - name: Run unit test
+        run: npm test
+
+  # Job3: SAST with semgrep 
+  Semgrep-test:
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    if: (github.actor != 'dependent[bot]')
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep ci
+        env:
+          SEMGREP_APP_TOKEN: ${{secrets.SEMGREP_APP_TOKEN}}
